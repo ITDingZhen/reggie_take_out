@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/reggie?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 1234
+  application:
+    #应用的名称
+    name: dlh2
+  redis:
+    host: 192.168.91.100
+    port: 6379
+    password: root@1234
+    database: 0
+  cache:
+    redis:
+      time-to-live: 1800000
+mybatis-plus:
+  configuration:
+    #'todo 在映射实体或属性时，将数据库中表名与字段名中的下划线去掉，按照驼峰命名法来映射
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+reggie:
+  #todo 指定一个目录（day4-04）
+  path: D:\img\
