@@ -10,11 +10,13 @@ import org.itheima.reggie.service.UserService;
 import org.itheima.reggie.utils.SMSUtils;
 import org.itheima.reggie.utils.ValidateCodeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
@@ -23,6 +25,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 发送手机短信验证码
@@ -41,7 +46,9 @@ public class UserController {
             //3.调用阿里云提供的短信服务完成发送短信
             //SMSUtils.sendMessage("cn-hangzhou","",phone,code);
             //4.需要将生成的验证码保存到Session
-            httpSession.setAttribute(phone,code);
+            //httpSession.setAttribute(phone,code);
+            //4.1将验证码缓存到redis中并且设置有效期
+            redisTemplate.opsForValue().set(phone,code,5, TimeUnit.MINUTES);
             return R.success("手机验证码发送成功");
         }
         return R.error("短信发送失败");
@@ -62,7 +69,9 @@ public class UserController {
         //获取保存的验证码
         String code = map.get("code").toString();
         //从Session中获得验证码
-        Object codeInSession = httpSession.getAttribute(phone);
+        //Object codeInSession = httpSession.getAttribute(phone);
+        //从redis中获取验证码
+        Object codeInSession = redisTemplate.opsForValue().get(phone);
         //进行验证码比对
         if(codeInSession != null && codeInSession.equals(code)){
             //如果比对成功，说明登录成功
@@ -76,6 +85,7 @@ public class UserController {
                 userService.save(user);
             }
             httpSession.setAttribute("user",user.getId());
+            redisTemplate.delete(phone);
             return R.success(user);
         }
 

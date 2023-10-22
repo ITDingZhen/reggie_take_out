@@ -13,11 +13,14 @@ import org.itheima.reggie.service.DishFlavorService;
 import org.itheima.reggie.service.DishService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +35,9 @@ public class DishController {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
     /**
@@ -117,6 +123,15 @@ public class DishController {
         LambdaQueryWrapper<DishDTO> queryWrapper=new LambdaQueryWrapper<>();
         queryWrapper.eq(DishDTO::getId,dishDTO.getId());
         dishService.updateWithFlavor(dishDTO);
+
+        //清理所有菜品的缓存数据
+        /*Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);*/
+
+        //清理某个菜品分类下的缓存数据
+        String id ="dish_"+dishDTO.getCategoryId()+"_1";
+        Boolean delete = redisTemplate.delete(id);
+
         return R.success("修改菜品成功");
     }
 
@@ -127,7 +142,17 @@ public class DishController {
      */
     @GetMapping("/list")
     public R<List<DishDTO>> list(Dish dish){
+        List<DishDTO> dishDTOList = null;
+        //动态来构造key
+        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
+        //先从redis中缓存数据
+        dishDTOList = (List<DishDTO>) redisTemplate.opsForValue().get(key);
 
+
+        if (dishDTOList!=null){
+            //如果存在，则直接返回，无需查询数据库
+            return R.success(dishDTOList);
+        }
         //构造查询条件
         LambdaQueryWrapper<Dish> queryWrapper =new LambdaQueryWrapper<>();
         queryWrapper.eq(dish.getCategoryId()!=null,Dish::getCategoryId,dish.getCategoryId());
@@ -136,7 +161,7 @@ public class DishController {
         //查询状态为起售状态的菜品
         queryWrapper.eq(Dish::getStatus,1);
         List<Dish> dishList = dishService.list(queryWrapper);
-        List<DishDTO>dishDTOList =dishList.stream().map((item)->{
+        dishDTOList =dishList.stream().map((item)->{
             DishDTO dishDTO =new DishDTO();
 
             BeanUtils.copyProperties(item,dishDTO);
@@ -159,6 +184,9 @@ public class DishController {
 
             return dishDTO;
         }).collect(Collectors.toList());
+
+        //如果不存在，需要查询数据库，将查询到的菜品数据缓存到Redis
+        redisTemplate.opsForValue().set(key,dishDTOList,60, TimeUnit.MINUTES);
 
 
         return R.success(dishDTOList);
