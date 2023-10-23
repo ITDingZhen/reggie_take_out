@@ -8,7 +8,7 @@ import java.util.Map;
 
 @Data
 public class R<T> implements Serializable {
-
+//todo 这里加了implements Serializable才能序列化不然用注解加入缓存会报错。
     private Integer code; //编码：1成功，0和其它数字为失败
 
     private String msg; //错误信息
