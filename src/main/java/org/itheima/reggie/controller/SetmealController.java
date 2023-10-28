@@ -2,6 +2,10 @@ package org.itheima.reggie.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.itheima.reggie.common.R;
 import org.itheima.reggie.dto.SetmealDTO;
@@ -26,6 +30,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/setmeal")
 @Slf4j
+@Api(tags = "套餐相关接口")
 public class SetmealController {
 
     @Autowired
@@ -44,6 +49,7 @@ public class SetmealController {
      */
     @PostMapping
     @CacheEvict(value = "setmealCache",allEntries = true)
+    @ApiOperation("新增套餐接口")
     public R<String> save(@RequestBody SetmealDTO setmealDTO){
         log.warn("套餐信息：{}",setmealDTO);
         setmealService.saveWithDish(setmealDTO);
@@ -58,6 +64,13 @@ public class SetmealController {
      * @return
      */
     @GetMapping("/page")
+    @ApiOperation("套餐分页查询接口")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "page",value = "页码",required = true),
+            @ApiImplicitParam(name = "pageSize",value = "每页记录数",required = true),
+            @ApiImplicitParam(name = "name",value = "套餐名称",required = false)
+            //required = true 表示这个参数是必须的
+    })
     public  R<Page> page(int page, int pageSize, String name){
         //分页构造器
         Page<Setmeal> pageInfo=new Page<>(page,pageSize);
@@ -91,15 +104,28 @@ public class SetmealController {
         return R.success(DTOPage);
     }
 
+    /**
+     * 删除套餐接口
+     * @param ids
+     * @return
+     */
     @DeleteMapping
     @CacheEvict(value = "setmealCache",allEntries = true)
+    @ApiOperation("删除套餐接口")
     public R<String> delete(@RequestParam  List<Long> ids){
         log.warn("ids ->"+ ids);
         setmealService.deleteWithDish(ids);
         return R.success("套餐数据删除成功");
     }
 
+    /**
+     * 修改套餐状态
+     * @param status
+     * @param ids
+     * @return
+     */
     @PostMapping ("/status/{status}")
+    @ApiOperation("修改套餐状态接口")
     public R<String> updateStatus(@PathVariable int status,long[] ids){
 
         Setmeal setmeal =new Setmeal();
@@ -117,8 +143,14 @@ public class SetmealController {
         return R.success("修改成功");
     }
 
+    /**
+     * 根据条件查询套餐数据
+     * @param setmeal
+     * @return
+     */
     @GetMapping("/list")
     @Cacheable(value = "setmealCache",key = "#setmeal.categoryId+'_'+#setmeal.status")
+    @ApiOperation("根据条件查询套餐数据接口")
     public R<List<Setmeal>> list(Setmeal setmeal){
         LambdaQueryWrapper<Setmeal> queryWrapper=new LambdaQueryWrapper<>();
         queryWrapper.eq(setmeal.getCategoryId()!=null,Setmeal::getCategoryId,setmeal.getCategoryId());
@@ -150,6 +182,7 @@ public class SetmealController {
 
     //todo 未完成
     @GetMapping ("/{id}")
+    @ApiOperation("修改套餐接口(未完成)")
     public R<SetmealDTO> update(@PathVariable long id) {
         
         Long categoryId = setmealService.getById(id).getCategoryId();

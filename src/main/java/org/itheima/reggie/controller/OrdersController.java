@@ -14,6 +14,7 @@ import org.itheima.reggie.service.OrderDetailService;
 import org.itheima.reggie.service.OrdersService;
 import org.itheima.reggie.service.ShoppingCartService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -50,9 +51,9 @@ public class OrdersController {
      * @return
      */
     @GetMapping("/page")
-    public R<Page<Orders>> employeePage(int page, int pageSize, Long number, String beginTime,String endTime) {
+    public R<Page<Orders>> employeeOrdersPage(int page, int pageSize, Long number, String beginTime,String endTime) {
 
-        Page page1=new Page<>(page,pageSize);
+        Page<Orders> page1=new Page<>(page,pageSize);
         LambdaQueryWrapper<Orders> queryWrapper =new LambdaQueryWrapper<>();
         if(number!=null){
             queryWrapper.like(StringUtils.isNotEmpty(String.valueOf(number)),Orders::getId,number);
@@ -60,7 +61,8 @@ public class OrdersController {
         if (beginTime!=null&&endTime!=null){
             queryWrapper.between(StringUtils.isNotEmpty(String.valueOf(beginTime))||StringUtils.isNotEmpty(String.valueOf(beginTime)),Orders::getOrderTime,beginTime,endTime);
         }
-          ordersService.page(page1,queryWrapper);
+        queryWrapper.orderByDesc(Orders::getOrderTime);
+        ordersService.page(page1,queryWrapper);
 
         return R.success(page1);
     }
@@ -72,12 +74,13 @@ public class OrdersController {
      * @return
      */
     @GetMapping("/userPage")
-    public R<Page> employeePage(int page, int pageSize) {
-        Page page1=new Page<>(page,pageSize);
+    public R<Page<Orders>> userOrdersPage(int page, int pageSize) {
+        Page<Orders> page1=new Page<>(page,pageSize);
         LambdaQueryWrapper<Orders> queryWrapper =new LambdaQueryWrapper<>();
         queryWrapper.eq(Orders::getUserId, BaseContext.getCurrentId());
+        queryWrapper.orderByDesc(Orders::getOrderTime);
         ordersService.page(page1,queryWrapper);
-
+        System.out.println(page1.toString());
         return R.success(page1);
     }
 
@@ -98,13 +101,13 @@ public class OrdersController {
 
 
     /**
-     *
+     * 再来一单
      * @param orders
      * @return
      */
     @PostMapping("/again")
     public R<String> saveAgain(@RequestBody Orders orders){
-     /*   LambdaQueryWrapper<Orders> queryWrapper =new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<Orders> queryWrapper =new LambdaQueryWrapper<>();
         queryWrapper.eq(Orders::getId,orders.getId());
         Orders one = ordersService.getOne(queryWrapper);
 
@@ -126,7 +129,6 @@ public class OrdersController {
         }
 
 
-*/
         return R.success("测试");
     }
 
